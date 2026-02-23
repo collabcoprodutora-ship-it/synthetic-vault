@@ -3,6 +3,18 @@
 
 const STORAGE_KEY = 'ss_vault_v3';
 
+// Supabase Configuration (Placeholder - User needs to fill these)
+const SUPABASE_URL = 'https://hufudjgdgcyrguyaqwue.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1ZnVkamdkZ2N5cmd1eWFxd3VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4Mjk3NDgsImV4cCI6MjA4NzQwNTc0OH0.c92UshJElvWz9CzpKrb03lIHXwKCHd7HFEBbsdGntUI';
+
+let supabaseClient = null;
+
+if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+    // We expect the script to be loaded in index.html
+    // @ts-ignore
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
 // App State
 const state = {
     models: [],
@@ -23,26 +35,58 @@ const state = {
 // Initialization
 async function init() {
     console.log('Initializing The Drop Vault...');
-    loadData();
-    setupEventListeners();
+    await loadData();
     renderFilters();
-    startStatusRefresh();
     applyFilters();
+    startStatusRefresh();
+    updateCountdown();
+    setupEventListeners();
 }
 
 // Data Management
-function loadData() {
+async function loadData() {
+    if (supabaseClient) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('models')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                state.models = data;
+            } else {
+                // Initialize database with default data if empty
+                const initialModels = generateInitialModels();
+                const { error: insertError } = await supabaseClient
+                    .from('models')
+                    .insert(initialModels);
+                if (insertError) throw insertError;
+                state.models = initialModels;
+            }
+        } catch (err) {
+            console.error('Erro ao carregar dados do Supabase:', err);
+            // Fallback to localStorage if Supabase fails
+            loadFromLocal();
+        }
+    } else {
+        loadFromLocal();
+    }
+}
+
+function loadFromLocal() {
     const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
         state.models = JSON.parse(savedData);
     } else {
-        // Initialize with mock/default data for 109 days if empty
         state.models = generateInitialModels();
         saveData();
     }
 }
 
 function saveData() {
+    // Local fallback persistence
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.models));
 }
 
@@ -569,11 +613,11 @@ function genOptions(opts, selected) {
     return opts.map(o => `<option value="${o}" ${o === selected ? 'selected' : ''}>${o}</option>`).join('');
 }
 
-function saveModel(id) {
+async function saveModel(id) {
     const idx = state.models.findIndex(m => m.id === id);
     if (idx === -1) return;
 
-    state.models[idx] = {
+    const updatedModel = {
         ...state.models[idx],
         name: document.getElementById('edit-name').value,
         photo: document.getElementById('edit-photo').value,
@@ -587,6 +631,20 @@ function saveModel(id) {
         visual: document.getElementById('edit-visual').value,
         roleplay: document.getElementById('edit-roleplay').value
     };
+
+    state.models[idx] = updatedModel;
+
+    if (supabaseClient) {
+        try {
+            const { error } = await supabaseClient
+                .from('models')
+                .upsert(updatedModel);
+            if (error) throw error;
+        } catch (err) {
+            console.error('Erro ao salvar no Supabase:', err);
+            alert('Erro ao salvar no banco de dados. Salvando localmente.');
+        }
+    }
 
     saveData();
     renderAdminList();
