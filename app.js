@@ -445,8 +445,19 @@ function loadEditor(id) {
         </div>
         <div class="editor-form">
             <div class="input-block">
-                <label>FOTO (URL)</label>
-                <input type="text" id="edit-photo" value="${model.photo}" placeholder="https://... ou deixe vazio">
+                <label>FOTO DO MODELO</label>
+                <div class="photo-input-group">
+                    <div class="photo-controls">
+                        <div class="photo-preview-container" id="photo-preview-box">
+                            ${model.photo ? `<img src="${model.photo}" alt="Preview">` : `<div class="preview-placeholder">Sem imagem</div>`}
+                        </div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <input type="text" id="edit-photo" value="${model.photo}" placeholder="https://... ou clique ao lado">
+                            <label for="local-upload" class="btn-upload-local" style="display: inline-block; text-align: center;">UPLOAD LOCAL</label>
+                            <input type="file" id="local-upload" accept="image/*" style="display: none;">
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="input-block">
                 <label>NOME</label>
@@ -491,19 +502,38 @@ function loadEditor(id) {
         </div>
     `;
 
-    // Real-time photo preview (moved from original loadEditor, but not in the provided snippet. Re-adding for functionality)
-    const editPhotoInput = document.getElementById('edit-photo');
-    if (editPhotoInput) {
-        editPhotoInput.addEventListener('input', (e) => {
-            // Assuming there's a preview element, if not, this part might need adjustment
-            // For now, let's assume the preview is handled elsewhere or not needed in this specific editor view
-            // If a preview is desired, a dedicated img tag would be needed in the editor-form
-            // For example: <img id="edit-preview" src="${model.photo || 'https://via.placeholder.com/400x600?text=Sem+Foto'}" style="width:100%; aspect-ratio:3/4; object-fit:cover; border:1px solid var(--border)">
-            // and then: document.getElementById('edit-preview').src = e.target.value || 'https://via.placeholder.com/400x600?text=Sem+Foto';
+    document.getElementById('btn-save-model').addEventListener('click', () => saveModel(id));
+
+    // Image Upload Handling
+    const photoInput = document.getElementById('edit-photo');
+    const uploadInput = document.getElementById('local-upload');
+    const previewBox = document.getElementById('photo-preview-box');
+
+    if (uploadInput) {
+        uploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const base64 = event.target.result;
+                photoInput.value = base64;
+                previewBox.innerHTML = `<img src="${base64}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
         });
     }
 
-    document.getElementById('btn-save-model').addEventListener('click', () => saveModel(id));
+    if (photoInput) {
+        photoInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (val) {
+                previewBox.innerHTML = `<img src="${val}" alt="Preview">`;
+            } else {
+                previewBox.innerHTML = `<div class="preview-placeholder">Sem imagem</div>`;
+            }
+        });
+    }
 }
 
 function genOptions(opts, selected) {
