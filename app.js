@@ -304,10 +304,11 @@ function renderGrid(filteredModels = state.models) {
         `;
 
         if (m.status !== 'live') {
+            const overlayText = m.status === 'soon' ? 'Em Breve' : 'Bloqueado';
             mediaHtml += `
-                <div class="blur-overlay">
+                <div class="blur-overlay ${m.status}-overlay" style="${m.status === 'soon' ? 'background: rgba(0,0,0,0.1)' : ''}">
                     <span class="blur-icon">${mainIcon}</span>
-                    <span class="blur-status">${m.status === 'soon' ? 'Bloqueado' : 'Bloqueado'}</span>
+                    <span class="blur-status">${overlayText}</span>
                     <span class="blur-date">${m.dropDate}</span>
                 </div>
             `;
