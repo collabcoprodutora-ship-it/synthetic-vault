@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthetic Studio™ — The Drop Vault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header class="main-header">
+        <div class="logo-container">
+            <h1 class="logo">SYNTHETIC STUDIO™</h1>
+            <span class="logo-tagline">THE DROP VAULT</span>
+        </div>
+        <div class="header-stats" id="header-stats">
+            <div class="stat-item"><span id="next-drop-timer">00:00:00</span> para o próximo drop</div>
+        </div>
+        <button id="admin-login-trigger" class="btn-admin-access">Admin Access</button>
+    </header>
+
+    <main class="app-container">
+        <div class="vault-controls">
+            <div class="search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                </svg>
+                <input type="text" id="model-search" placeholder="Buscar modelo ou tag...">
+            </div>
+
+            <div class="status-filters" id="status-filters">
+                <button class="btn-filter active" data-status="all">TODOS</button>
+                <button class="btn-filter" data-status="live">AO VIVO</button>
+                <button class="btn-filter" data-status="soon">EM BREVE</button>
+                <button class="btn-filter" data-status="upcoming">BLOQUEADO</button>
+            </div>
+
+            <div class="filter-toggle-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <line x1="4" y1="21" x2="4" y2="14" />
+                    <line x1="4" y1="10" x2="4" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12" y2="3" />
+                    <line x1="20" y1="21" x2="20" y2="16" />
+                    <line x1="20" y1="12" x2="20" y2="3" />
+                    <line x1="2" x2="6" y1="14" y2="14" />
+                    <line x1="10" x2="14" y1="8" y2="8" />
+                    <line x1="18" x2="22" y1="16" y2="16" />
+                </svg>
+                FILTROS
+            </div>
+
+            <div class="filters-grid" id="dynamic-filters">
+                <!-- Categories rendered as pills via JS -->
+            </div>
+        </div>
+
+        <section class="vault-grid-container">
+            <div class="grid-header">
+                <span id="results-count">Mostrando 0 modelos</span>
+            </div>
+            <div class="model-grid" id="model-grid">
+                <!-- Cards will be rendered here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Acesso Restrito</h2>
+            <div class="admin-login-form">
+                <input type="text" id="admin-user" placeholder="Usuário">
+                <input type="password" id="admin-pass" placeholder="Senha">
+                <div class="modal-actions">
+                    <button id="btn-login" class="btn-primary">Entrar</button>
+                    <button id="btn-cancel-login" class="btn-secondary">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Overlay -->
+    <div id="admin-panel" class="admin-overlay hidden">
+        <header class="admin-header">
+            <h3>PAINEL ADMIN</h3>
+            <div class="admin-header-actions">
+                <button id="btn-close-admin" class="btn-secondary btn-small"
+                    style="border:none; font-size: 1.2rem">×</button>
+            </div>
+        </header>
+        <div class="admin-main">
+            <aside class="admin-sidebar">
+                <div class="admin-stats-icons" id="admin-sidebar-stats">
+                    <!-- Stats with icons -->
+                </div>
+                <input type="text" id="admin-model-search" placeholder="Q Buscar...">
+                <div class="admin-model-list" id="admin-model-list">
+                    <!-- Model list items rendered here -->
+                </div>
+                <div class="admin-footer-logout" id="btn-logout">
+                    [← Sair do Admin]
+                </div>
+            </aside>
+            <section class="admin-editor" id="admin-editor">
+                <div class="editor-empty-state">
+                    Selecione um modelo para editar
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Details View (Overlay) -->
+    <div id="details-view" class="details-overlay hidden">
+        <header class="details-header">
+            <button class="btn-close-details">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                    stroke-linejoin="round" style="width:14px;height:14px">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+                VOLTAR AO VAULT
+            </button>
+        </header>
+        <div class="details-main">
+            <!-- Content rendered via JS -->
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
