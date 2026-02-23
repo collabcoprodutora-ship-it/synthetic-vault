@@ -62,11 +62,14 @@ async function loadData() {
                 const { error: insertError } = await supabaseClient
                     .from('models')
                     .insert(initialModels);
-                if (insertError) throw insertError;
+                if (insertError) {
+                    console.error('Erro na carga inicial do Supabase:', insertError);
+                    throw new Error(`Carga inicial falhou: ${insertError.message}`);
+                }
                 state.models = initialModels;
             }
         } catch (err) {
-            console.error('Erro ao carregar dados do Supabase:', err);
+            console.error('Erro detalhado no loadData do Supabase:', err);
             // Fallback to localStorage if Supabase fails
             loadFromLocal();
         }
@@ -113,7 +116,7 @@ function generateInitialModels() {
         dropDate.setDate(startDate.getDate() + (i - 1));
 
         models.push({
-            id: i,
+            id: String(i),
             name: names[i - 1] || `Modelo ${String(i).padStart(3, '0')}`,
             dropNumber: String(i).padStart(3, '0'),
             dropDate: dropDate.toISOString().split('T')[0],
@@ -636,13 +639,27 @@ async function saveModel(id) {
 
     if (supabaseClient) {
         try {
+            // Remove 'status' before saving as it's a computed property not in the DB schema
+            const modelToSave = { ...updatedModel };
+            delete modelToSave.status;
+
             const { error } = await supabaseClient
                 .from('models')
-                .upsert(updatedModel);
-            if (error) throw error;
+                .upsert(modelToSave);
+
+            if (error) {
+                // Log the full error object for debugging purposes
+                console.error('Supabase upsert error:', error);
+                console.dir(error);
+                // Throw the error to be caught by the catch block below
+                throw error;
+            }
         } catch (err) {
-            console.error('Erro ao salvar no Supabase:', err);
-            alert('Erro ao salvar no banco de dados. Salvando localmente.');
+            // Check if the error object has a 'message' property
+            const errorMessage = err.message || 'Erro desconhecido ao salvar no Supabase.';
+            console.error('Erro detalhado ao salvar no Supabase:', err);
+            console.dir(err);
+            alert(`Erro ao salvar no banco de dados: ${errorMessage}. Salvando localmente.`);
         }
     }
 
