@@ -280,9 +280,7 @@ function renderGrid(filteredModels = state.models) {
         `;
 
         card.addEventListener('click', () => {
-            if (m.status === 'live') {
-                openDetails(m.id);
-            }
+            handleCardClick(m.id);
         });
 
         grid.appendChild(card);
@@ -290,68 +288,99 @@ function renderGrid(filteredModels = state.models) {
 }
 
 // Navigation & Details
+function handleCardClick(id) {
+    state.currentModel = state.models.find(m => m.id === id);
+    // Check if age already confirmed this session (optional, but user said "on this transition")
+    openGate();
+}
+
 function openDetails(id) {
-    const model = state.models.find(m => m.id === id);
-    if (!model) return;
+    const m = state.models.find(mod => mod.id === id);
+    if (!m) return;
 
-    state.currentModel = model;
-    const overlay = document.getElementById('details-view');
-    const content = overlay.querySelector('.details-content');
+    state.currentModel = m;
+    const detailsContainer = document.querySelector('#details-view .details-main');
+    const status = computeStatus(m.dropDate, m.statusOverride);
+    const statusLabel = status === 'live' ? 'AO VIVO' : (status === 'soon' ? 'EM BREVE' : 'BLOQUEADO');
 
-    content.innerHTML = `
-        <div class="details-media">
-            <img src="${model.photo || 'https://via.placeholder.com/800x1200?text=📸'}" alt="${model.name}">
+    document.getElementById('details-view').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    const icons = {
+        flame: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`
+    };
+
+    detailsContainer.innerHTML = `
+        <div class="details-media-panel">
+            ${m.photo ? `<img src="${m.photo}" alt="${m.name}">` : `<div class="placeholder-icon">${icons.flame}</div>`}
         </div>
-        <div class="details-info">
-            <div class="details-hero">
-                <span class="card-date">Disponível desde ${model.dropDate}</span>
-                <h2>${model.name.toUpperCase()}</h2>
-                <div class="badge-status" style="position:static; display:inline-block; margin-top:1rem">${model.status.toUpperCase()}</div>
+        <div class="details-info-panel">
+            <div class="details-badges">
+                <span class="badge-pill drop-num">DROP #${m.dropNumber}</span>
+                <span class="badge-pill status">${statusLabel}</span>
+            </div>
+            
+            <h2 style="font-size: 4rem; font-weight: 950; text-transform: uppercase; letter-spacing: -2px; line-height: 1; margin: -0.5rem 0;">${m.name.toUpperCase()}</h2>
+            
+            <p class="details-date">Disponível em <strong>${new Date(m.dropDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></p>
+            
+            <div class="details-attributes">
+                <div class="attr-row">
+                    <span class="attr-label">TRIBO</span>
+                    <span class="attr-value">${m.tribe}</span>
+                </div>
+                <div class="attr-row">
+                    <span class="attr-label">VIBE</span>
+                    <span class="attr-value">${m.vibe}</span>
+                </div>
+                <div class="attr-row">
+                    <span class="attr-label">FUNÇÃO</span>
+                    <span class="attr-value">${m.role}</span>
+                </div>
+                <div class="attr-row">
+                    <span class="attr-label">VISUAL</span>
+                    <span class="attr-value">${m.visual}</span>
+                </div>
+                <div class="attr-row">
+                    <span class="attr-label">ROLEPLAY</span>
+                    <span class="attr-value">${m.roleplay}</span>
+                </div>
             </div>
 
-            <div class="details-tags-grid">
-                <div class="detail-tag-item"><label>Tribo</label><span>${model.tribe}</span></div>
-                <div class="detail-tag-item"><label>Vibe</label><span>${model.vibe}</span></div>
-                <div class="detail-tag-item"><label>Função</label><span>${model.role}</span></div>
-                <div class="detail-tag-item"><label>Visual</label><span>${model.visual}</span></div>
-                <div class="detail-tag-item"><label>Roleplay</label><span>${model.roleplay}</span></div>
+            <div class="details-description" style="font-size: 0.95rem; line-height: 1.6; color: #888; font-style: italic; border-top: 1px solid #1a1a1a; padding-top: 2rem;">
+                ${m.description || 'Nenhuma descrição disponível.'}
             </div>
 
-            <div class="details-actions">
-                <button id="cta-ensaio" class="btn-primary" style="width:100%">Ver ensaio completo</button>
-                <p>Ao clicar, você será redirecionado para uma plataforma externa (Cakto/Privacy).</p>
+            <div class="details-cta" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                ${m.link && status === 'live' ? `<a href="${m.link}" target="_blank" class="btn-details-main">ACESSAR ENSAIO COMPLETO</a>` : `<p><em>Link do ensaio ainda não liberado ou não configurado.</em></p>`}
+                <p style="font-size: 0.75rem; color: #444; line-height: 1.4; max-width: 400px;">Ao clicar, você será redirecionado para a plataforma externa onde o ensaio completo está hospedado. Conteúdo exclusivo para maiores de 18 anos.</p>
             </div>
         </div>
     `;
-
-    overlay.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-
-    document.getElementById('cta-ensaio').addEventListener('click', openGate);
 }
 
 function closeDetails() {
     document.getElementById('details-view').classList.add('hidden');
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = '';
     state.currentModel = null;
 }
 
 // Age Gate
 function openGate() {
     document.getElementById('age-gate-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
 }
 
 function confirmAge() {
-    if (state.currentModel && state.currentModel.link) {
-        window.open(state.currentModel.link, '_blank');
-    } else {
-        alert('Este ensaio ainda não possui um link configurado.');
-    }
     closeGate();
+    if (state.currentModel) {
+        openDetails(state.currentModel.id);
+    }
 }
 
 function closeGate() {
     document.getElementById('age-gate-modal').classList.add('hidden');
+    document.body.style.overflow = '';
 }
 
 // Admin Logic
