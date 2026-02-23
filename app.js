@@ -55,7 +55,8 @@ async function loadData() {
             if (error) throw error;
 
             if (data && data.length > 0) {
-                state.models = data;
+                // Ensure models are always sorted by dropNumber (numeric)
+                state.models = data.sort((a, b) => parseInt(a.dropNumber) - parseInt(b.dropNumber));
             } else {
                 // Initialize database with default data if empty
                 const initialModels = generateInitialModels();
@@ -195,10 +196,12 @@ function updateCountdown() {
 
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+    const days = Math.floor(hours / 24);
+    const displayHours = hours % 24;
 
     document.getElementById('next-drop-timer').innerText =
-        `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        `${String(days).padStart(2, '0')}d : ${String(displayHours).padStart(2, '0')}h : ${String(mins).padStart(2, '0')}m`;
 }
 
 // UI Rendering
@@ -217,7 +220,7 @@ function renderFilters() {
     for (const [key, options] of Object.entries(categories)) {
         const group = document.createElement('div');
         group.className = 'filter-category';
-        group.innerHTML = `<h4>${key === 'role' ? 'FUNÇÃO' : key}</h4>`;
+        group.innerHTML = `<h4>${key.toUpperCase() === 'ROLE' ? 'FUNÇÃO' : key.toUpperCase()}</h4>`;
 
         const pillGroup = document.createElement('div');
         pillGroup.className = 'pill-group';
@@ -237,30 +240,31 @@ function renderFilters() {
 }
 
 function applyFilters() {
+    const searchText = state.filters.search.toLowerCase();
+    const activeFilters = state.filters;
+
     const filtered = state.models.filter(m => {
-        const searchMatch = !state.filters.search ||
-            m.name.toLowerCase().includes(state.filters.search.toLowerCase()) ||
-            [m.tribe, m.vibe, m.role, m.visual, m.roleplay].some(tag =>
-                tag.toLowerCase().includes(state.filters.search.toLowerCase())
-            );
+        const matchesSearch = m.name.toLowerCase().includes(searchText) ||
+            m.dropNumber.includes(searchText) ||
+            m.description.toLowerCase().includes(searchText);
 
-        // Status Filter Logic
-        let statusMatch = true;
-        if (state.filters.status !== 'all') {
-            statusMatch = m.status === state.filters.status;
-        }
+        const matchesStatus = activeFilters.status === 'all' || m.status === activeFilters.status;
 
-        const tribeMatch = state.filters.tribe.length === 0 || state.filters.tribe.includes(m.tribe);
-        const vibeMatch = state.filters.vibe.length === 0 || state.filters.vibe.includes(m.vibe);
-        const roleMatch = state.filters.role.length === 0 || state.filters.role.includes(m.role);
-        const visualMatch = state.filters.visual.length === 0 || state.filters.visual.includes(m.visual);
-        const roleplayMatch = state.filters.roleplay.length === 0 || state.filters.roleplay.includes(m.roleplay);
+        const matchesTribe = activeFilters.tribe.length === 0 || activeFilters.tribe.includes(m.tribe);
+        const matchesVibe = activeFilters.vibe.length === 0 || activeFilters.vibe.includes(m.vibe);
+        const matchesRole = activeFilters.role.length === 0 || activeFilters.role.includes(m.role);
+        const matchesVisual = activeFilters.visual.length === 0 || activeFilters.visual.includes(m.visual);
+        const matchesRoleplay = activeFilters.roleplay.length === 0 || activeFilters.roleplay.includes(m.roleplay);
 
-        return searchMatch && statusMatch && tribeMatch && vibeMatch && roleMatch && visualMatch && roleplayMatch;
+        return matchesSearch && matchesStatus && matchesTribe && matchesVibe && matchesRole && matchesVisual && matchesRoleplay;
     });
 
-    renderGrid(filtered);
     document.getElementById('results-count').innerText = `${filtered.length} DE ${state.models.length} MODELOS`;
+
+    // Always sort by dropNumber to maintain order
+    filtered.sort((a, b) => parseInt(a.dropNumber) - parseInt(b.dropNumber));
+
+    renderGrid(filtered);
 }
 
 function renderGrid(filteredModels = state.models) {
@@ -268,10 +272,10 @@ function renderGrid(filteredModels = state.models) {
     grid.innerHTML = '';
 
     const icons = {
-        live: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 3 14 9-14 9V3z"/></svg>`,
-        soon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-        camera: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
-        lock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+        live: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.5 4 6.5 2 2 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`,
+        soon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+        camera: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+        lock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
     };
 
     filteredModels.forEach(m => {
@@ -287,23 +291,24 @@ function renderGrid(filteredModels = state.models) {
             statusIcon = icons.soon;
         } else {
             statusLabel = 'BLOQUEADO';
-            statusIcon = icons.soon; // Keeping same icon as soon for upcoming
+            statusIcon = icons.soon;
         }
 
         const mainIcon = m.status === 'live' ? icons.camera : icons.lock;
 
         let mediaHtml = `
-            ${m.photo ? `<img src="${m.photo}" alt="${m.name}" loading="lazy" style="${m.status !== 'live' ? 'filter: blur(20px)' : ''}">` :
+            ${m.photo ? `<img src="${m.photo}" alt="${m.name}" loading="lazy" style="${m.status !== 'live' ? 'filter: blur(25px)' : ''}">` :
                 `<div class="card-media-placeholder">${mainIcon}</div>`}
             <div class="badge-drop">#${m.dropNumber}</div>
-            <div class="badge-status">${statusIcon} ${statusLabel}</div>
+            <div class="badge-status">${statusIcon}${statusLabel}</div>
         `;
 
         if (m.status !== 'live') {
             mediaHtml += `
                 <div class="blur-overlay">
-                    <span>${m.status === 'soon' ? 'Disponível em breve' : 'Bloqueado'}</span>
-                    <span style="font-size: 0.6rem; opacity: 0.8">${m.dropDate}</span>
+                    <span class="blur-icon">${mainIcon}</span>
+                    <span class="blur-status">${m.status === 'soon' ? 'Bloqueado' : 'Bloqueado'}</span>
+                    <span class="blur-date">${m.dropDate}</span>
                 </div>
             `;
         }
@@ -318,17 +323,22 @@ function renderGrid(filteredModels = state.models) {
                     <span class="card-date">${m.dropDate}</span>
                 </div>
                 <div class="card-tags">
-                    <span>${m.tribe}</span>
-                    <span>${m.vibe}</span>
-                    <span>${m.role}</span>
+                    <span>${m.tribe.toUpperCase()}</span>
+                    <span>${m.vibe.toUpperCase()}</span>
+                    <span>${m.role.toUpperCase()}</span>
                 </div>
                 ${m.status === 'live' ? `<div class="btn-card-cta">VER ENSAIO →</div>` : ''}
             </div>
         `;
 
-        card.addEventListener('click', () => {
-            handleCardClick(m.id);
-        });
+        if (m.status === 'live') {
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', () => {
+                handleCardClick(m.id);
+            });
+        } else {
+            card.style.cursor = 'default';
+        }
 
         grid.appendChild(card);
     });
