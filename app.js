@@ -36,6 +36,7 @@ const state = {
 async function init() {
     console.log('Initializing The Drop Vault...');
     await loadData();
+    updateModelsStatus(); // Ensure status is computed before rendering
     renderFilters();
     applyFilters();
     startStatusRefresh();
@@ -140,10 +141,13 @@ function computeStatus(dropDateStr, override) {
     if (override) return override;
 
     const now = new Date();
-    const dropDate = new Date(dropDateStr);
 
-    // Set drop time to 00:00:00 of the drop date
-    const dropTime = new Date(dropDate.getFullYear(), dropDate.getMonth(), dropDate.getDate()).getTime();
+    // Fix: Parse YYYY-MM-DD as local time to avoid timezone shifts
+    const [year, month, day] = dropDateStr.split('-').map(Number);
+    const dropDate = new Date(year, month - 1, day);
+
+    // Set drop time to 00:00:00 of the drop date in local time
+    const dropTime = dropDate.getTime();
     const currentTime = now.getTime();
 
     const diffMs = dropTime - currentTime;
@@ -178,15 +182,20 @@ function updateCountdown() {
     // Find the next upcoming/soon drop
     const nextDrop = state.models
         .filter(m => computeStatus(m.dropDate, m.statusOverride) !== 'live')
-        .sort((a, b) => new Date(a.dropDate) - new Date(b.dropDate))[0];
+        .sort((a, b) => {
+            const [yA, mA, dA] = a.dropDate.split('-').map(Number);
+            const [yB, mB, dB] = b.dropDate.split('-').map(Number);
+            return new Date(yA, mA - 1, dA) - new Date(yB, mB - 1, dB);
+        })[0];
 
     if (!nextDrop) {
         document.getElementById('next-drop-timer').innerText = '--:--:--';
         return;
     }
 
-    const dropDate = new Date(nextDrop.dropDate);
-    const dropTime = new Date(dropDate.getFullYear(), dropDate.getMonth(), dropDate.getDate()).getTime();
+    const [year, month, day] = nextDrop.dropDate.split('-').map(Number);
+    const dropDate = new Date(year, month - 1, day);
+    const dropTime = dropDate.getTime();
     const diffMs = dropTime - now.getTime();
 
     if (diffMs <= 0) {
